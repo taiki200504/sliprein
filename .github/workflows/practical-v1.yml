@@ -1,7 +1,7 @@
 name: Practical v1 acceptance
 on:
   push:
-    branches: [feat/authority-utxo]
+    branches: [main]
     paths: ['research/**', 'gateway/**', 'cli/**', 'demo/**', 'scripts/**', 'package*.json', '.github/workflows/practical-v1.yml']
   pull_request:
     paths: ['research/**', 'gateway/**', 'cli/**', 'demo/**', 'scripts/**', 'package*.json', '.github/workflows/practical-v1.yml']
