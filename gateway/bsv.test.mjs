@@ -1,4 +1,5 @@
 import { MemoryChain, BsvLedger, buildSettle } from '../research/authority-utxo/bsv.mjs';
+const TEST_WORK = (1n << 256n) - 1n; // tests only: accept the easy covenant target
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Gateway, sign, publicKey, createServer } from './index.mjs';
@@ -10,7 +11,7 @@ export async function fixture(n=10) {
  const ancestors=[a,b,agent].map(publicKey);
  const utxo=makeUtxo({state:{holder:publicKey(gatewayKey),R:ancestors.reduce(deriveR,ROOT_R),d:3,n,P:1,T:2000000000}});
  const id=`${utxo.txid}:0`; chain.put(utxo,{confirmations:1});
- const g=new Gateway({key:gatewayKey,ledger:new BsvLedger({chain}),now:()=>1800000000,operations:{'/mock':1,'/other':2}});
+ const g=new Gateway({key:gatewayKey,ledger:new BsvLedger({chain,maxTarget:TEST_WORK}),now:()=>1800000000,operations:{'/mock':1,'/other':2}});
  await g.bind(id,ancestors);
  const req=(nonce, k=agent,path='/mock')=>sign(k,{tranche:id,method:'POST',path,body:'{}',nonce});
  return {g,a,b,agent,gatewayKey,chain,id,req,ancestors};
@@ -98,7 +99,7 @@ test('BSV: HTTP forwards only authorized requests; stop and rate limit are enfor
 test('BSV: persistent database retains nonce, balance, audit and stop across instances',async()=>{
  const {mkdtemp,rm}=await import('node:fs/promises'); const {tmpdir}=await import('node:os'); const {join}=await import('node:path');
  const dir=await mkdtemp(join(tmpdir(),'authority-gateway-')); const f=await fixture(); const file=join(dir,'gateway.sqlite');
- const opts={key:f.gatewayKey,ledger:new BsvLedger({chain:f.chain}),filename:file,now:()=>1800000000,operations:{'/mock':1}};
+ const opts={key:f.gatewayKey,ledger:new BsvLedger({chain:f.chain,maxTarget:TEST_WORK}),filename:file,now:()=>1800000000,operations:{'/mock':1}};
  let g=new Gateway(opts); await g.bind(f.id,f.ancestors); await g.authorize(f.req('one')); g.close();
  try {
   g=new Gateway(opts); assert.equal(g.status(f.id).remaining,9); await assert.rejects(g.authorize(f.req('one')));
@@ -130,7 +131,7 @@ test('BSV: HTTP bind verifies depositor, ancestry and body signature',async(t)=>
 test('BSV: bind rejects zero confirmations and requires policy K>=1',async()=>{
  const gatewayKey=key(), agent=key(), chain=new MemoryChain(), ancestors=[publicKey(agent)];
  const u=makeUtxo({state:{holder:publicKey(gatewayKey),R:ancestors.reduce(deriveR,ROOT_R),d:1,n:2,P:1,T:2000000000}});
- const id=chain.put(u,{confirmations:0}); const ledger=new BsvLedger({chain});
+ const id=chain.put(u,{confirmations:0}); const ledger=new BsvLedger({chain,maxTarget:TEST_WORK});
  const g=new Gateway({key:gatewayKey,ledger,operations:{'/mock':1},now:()=>1800000000});
  await assert.rejects(g.bind(id,ancestors),/confirmation/); assert.throws(()=>new BsvLedger({chain,minConfirmations:0}),/confirmation/); g.close();
 });
@@ -140,4 +141,12 @@ test('BSV: stop records pending usage before settlement builder runs',async()=>{
  assert.equal(f.g.status(f.id).stopped,1); assert.equal(f.g.pendingSettlements()[0].k,2);
  const result=await f.g.settle(f.id); assert.equal(result.ok,true); assert.equal(result.k,2);
  assert.equal(f.g.pendingSettlements()[0].status,'built'); await assert.rejects(f.g.authorize(f.req('three'))); f.g.close();
+});
+
+test('BSV: default ledger rejects a covenant with an easy (test) work target',async()=>{
+ const gatewayKey=key(), agent=key(), chain=new MemoryChain(), ancestors=[publicKey(agent)];
+ const u=makeUtxo({state:{holder:publicKey(gatewayKey),R:ancestors.reduce(deriveR,ROOT_R),d:1,n:2,P:1,T:2000000000}});
+ const id=chain.put(u,{confirmations:6});
+ const g=new Gateway({key:gatewayKey,ledger:new BsvLedger({chain}),operations:{'/mock':1},now:()=>1800000000});
+ await assert.rejects(g.bind(id,ancestors),/work window too weak/); g.close();
 });

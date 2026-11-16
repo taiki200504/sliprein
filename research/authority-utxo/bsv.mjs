@@ -1,4 +1,7 @@
-import { covLockingScript, spendAnnounceUse, spendConfirmUse } from './authority/lib/cov/index.mjs';
+import { covLockingScript, spendAnnounceUse, spendConfirmUse, DEFAULT_PARAMS } from './authority/lib/cov/index.mjs';
+
+/** Easiest accepted work target: mainnet bits 0x18225459 (height 975,655) eased 4x. Faking K+1 headers must cost real mining. */
+export const MAINNET_FLOOR_TARGET = (0x225459n << 168n) * 4n;
 import { requireThat, validateID } from '../../gateway/auth.mjs';
 
 /** Trusted adapter contract: async getUtxo(id) -> descriptor|undefined; async isSpent(id) -> boolean. */
@@ -32,8 +35,10 @@ export async function buildSettle(utxo, { key, k, lockTime = 0, headers, merkleP
 
 /** BSV is optional; the underlying adapter must attest canonical-chain confirmations. */
 export class BsvLedger {
-  constructor({ chain, minConfirmations = 1 }) {
+  constructor({ chain, minConfirmations = 1, maxTarget = MAINNET_FLOOR_TARGET, minK = 2 }) {
     requireThat(Number.isInteger(minConfirmations) && minConfirmations >= 1, 'confirmations policy must be >=1');
+    requireThat(typeof maxTarget === 'bigint' && maxTarget > 0n && Number.isInteger(minK) && minK >= 1, 'work policy required');
+    this.maxTarget = maxTarget; this.minK = minK;
     requireThat(chain && typeof chain.getUtxo === 'function' && typeof chain.isSpent === 'function', 'chain adapter required');
     this.chain = chain; this.minConfirmations = minConfirmations;
   }
@@ -41,6 +46,8 @@ export class BsvLedger {
     validateID(id); const utxo = await this.chain.getUtxo(id);
     requireThat(utxo && `${utxo.txid}:${utxo.vout}` === id, 'missing UTXO');
     requireThat(Number.isInteger(utxo.confirmations) && utxo.confirmations >= this.minConfirmations, 'insufficient confirmations');
+    const params = utxo.params ?? DEFAULT_PARAMS;
+    requireThat(params.target <= this.maxTarget && params.K >= this.minK, 'covenant work window too weak');
     return { ...stateFromScript(utxo), id };
   }
   async isSpent(id) {

@@ -39,7 +39,7 @@ server.listen(8080, '127.0.0.1');
 
 ## BSV アダプタ
 
-`new BsvLedger({chain, minConfirmations: 1})` を `Gateway` に渡す。`minConfirmations` は必ず整数の1以上。0・未確認の UTXO は bind で拒否する。covenant 発行時のヘッダ待ちパラメータとは別の預け入れ確認ポリシー。
+`new BsvLedger({chain, minConfirmations: 1})` を `Gateway` に渡す。`minConfirmations` は必ず整数の1以上。0・未確認の UTXO は bind で拒否する。covenant 発行時のヘッダ待ちパラメータとは別の預け入れ確認ポリシー。加えて既定では、covenant の作業量の下限がメインネット難易度の1/4より緩い束（K<2 を含む）は bind を拒否する（`maxTarget`・`minK` で変更。緩めるのはテストだけ）。
 
 `chain` は `async getUtxo(id)` と `async isSpent(id)` を実装する。UTXO 記述子は `{txid,vout,satoshis,script,params,confirmations}`。`script` は SDK の LockingScript、`params` は発行時の K/target、`confirmations` は canonical chain 上の実際の確認数。アダプタがスクリプトから n/P/T/holder/R を読み、コード全体も照合する。渡された `utxo.state` は信用しない。
 

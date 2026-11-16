@@ -1,4 +1,5 @@
 import { MemoryChain, BsvLedger } from '../research/authority-utxo/bsv.mjs';
+const TEST_WORK = (1n << 256n) - 1n; // tests only: accept the easy covenant target
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { PrivateKey } from '@bsv/sdk';
@@ -20,7 +21,7 @@ if (useBsv) {
   }
   const [b] = await delegate(root, companyA, [child(companyB, 1000, 1000), child(key(), 0, 0)]);
   const agents = await delegate(b, companyB, [child(agent1, 500, 500), child(agent2, 500, 500)]);
-  const chain = new MemoryChain(); ledger = new BsvLedger({ chain });
+  const chain = new MemoryChain(); ledger = new BsvLedger({ chain, maxTarget: TEST_WORK });
   for (const [i, agent] of [agent1, agent2].entries()) {
     const [bound] = await delegate(agents[i], agent, [child(gatewayKey, 500, 500), child(key(), 0, 0)]);
     // The test adapter explicitly asserts canonical confirmation; no real network.
