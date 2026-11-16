@@ -1,0 +1,37 @@
+{
+  "type": "module",
+  "scripts": {
+    "test": "nice -n 15 node --test --test-concurrency=1 research/authority-utxo/authority/*.test.mjs gateway/*.test.mjs cli/*.test.mjs research/authority-utxo/legacy/*.test.mjs",
+    "demo": "node demo/run.mjs",
+    "demo:bsv": "node gateway/demo.mjs --bsv",
+    "demo:gateway": "node gateway/demo.mjs",
+    "bench": "node scripts/bench.mjs",
+    "sliprein": "node gateway/cli/main.mjs"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "name": "sliprein",
+  "version": "0.1.0",
+  "description": "Per-agent quotas and stop controls for OpenAI-compatible APIs",
+  "license": "Apache-2.0",
+  "bin": {
+    "sliprein": "gateway/cli/main.mjs"
+  },
+  "files": [
+    "gateway/cli/main.mjs",
+    "gateway/cli/state.mjs",
+    "gateway/proxy.mjs",
+    "gateway/ledger.mjs",
+    "gateway/index.mjs",
+    "gateway/auth.mjs",
+    "gateway/http.mjs",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md",
+    "gateway/package.json"
+  ],
+  "devDependencies": {
+    "@bsv/sdk": "^4.1.0"
+  }
+}

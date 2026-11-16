@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIの「1体だけ止める」仕組み — ユースケースで分かる解説</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --ink:#1b1f24; --sub:#5b6573; --line:#e3e6ea;
+    --blue:#2f6fed; --green:#1f9d55; --red:#d64545; --amber:#c98a00; --violet:#7a4fd6;
+    --r:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 "Hiragino Sans","Noto Sans JP",system-ui,sans-serif}
+  main{max-width:980px;margin:0 auto;padding:40px 20px 80px}
+  h1{font-size:30px;line-height:1.35;margin:0 0 8px}
+  h2{font-size:22px;margin:56px 0 6px}
+  h3{font-size:17px;margin:0 0 6px}
+  p{margin:6px 0}
+  .lead{color:var(--sub);font-size:17px}
+  .tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 10px;border-radius:99px;background:#e8efff;color:var(--blue);margin-bottom:10px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:22px;margin:16px 0}
+  .one{font-size:20px;font-weight:700;border-left:6px solid var(--blue);padding:14px 18px;background:#fff;border-radius:10px}
+  .grid{display:grid;gap:12px}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  @media (max-width:720px){.g3,.g2{grid-template-columns:1fr}}
+  .who{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fbfcfd}
+  .who b{display:block;font-size:15px}
+  .who span{color:var(--sub);font-size:14px}
+  .em{font-size:28px}
+
+  /* tree */
+  .tree{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .node{min-width:170px;border:2px solid var(--line);border-radius:12px;padding:10px 14px;background:#fff;text-align:center;transition:.25s}
+  .node .name{font-weight:700;font-size:15px}
+  .node .meta{color:var(--sub);font-size:13px}
+  .node .left{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+  .bar{height:8px;border-radius:9px;background:#eef0f3;overflow:hidden;margin-top:6px}
+  .bar i{display:block;height:100%;background:var(--green);transition:width .2s}
+  .node.ok{border-color:#bfe5cf}
+  .node.bad{border-color:var(--red);background:#fff5f5}
+  .node.bad .bar i{background:var(--red)}
+  .node.stop{border-color:#c5cbd3;background:#f1f3f5;opacity:.8}
+  .node.stop .bar i{background:#9aa3ad}
+  .node.sub{border-style:dashed;border-color:var(--violet)}
+  .arrow{color:#aab2bd;font-size:20px;line-height:1}
+  .status{font-size:12px;font-weight:700;border-radius:99px;padding:1px 8px;display:inline-block;margin-top:4px}
+  .s-ok{background:#e6f6ec;color:var(--green)}
+  .s-bad{background:#fde8e8;color:var(--red)}
+  .s-stop{background:#e9ecef;color:#59636e}
+
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px}
+  button{font:inherit;font-size:14px;font-weight:700;border:0;border-radius:10px;padding:10px 14px;cursor:pointer;background:var(--blue);color:#fff}
+  button.ghost{background:#eef2f7;color:var(--ink)}
+  button.danger{background:var(--red)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .log{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:#0f1720;color:#d7e0ea;border-radius:10px;padding:12px;height:150px;overflow:auto;margin-top:10px}
+  .log .r{color:#ff9a9a}.log .g{color:#9be3b5}.log .y{color:#ffd37a}
+
+  table{width:100%;border-collapse:collapse;font-size:15px}
+  th,td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top}
+  th{color:var(--sub);font-weight:600;font-size:13px}
+  td.y{color:var(--green);font-weight:700} td.n{color:var(--red);font-weight:700}
+  .note{color:var(--sub);font-size:14px}
+  .steps{counter-reset:s;list-style:none;padding:0;margin:8px 0}
+  .steps li{counter-increment:s;padding:8px 0 8px 40px;position:relative}
+  .steps li::before{content:counter(s);position:absolute;left:0;top:8px;width:28px;height:28px;border-radius:50%;background:var(--blue);color:#fff;font-weight:700;text-align:center;line-height:28px;font-size:14px}
+  .honest{border-left:6px solid var(--amber);background:#fffaf0}
+  .chain{border-left:6px solid var(--violet)}
+</style>
+</head>
+<body>
+<main>
+
+<span class="tag">解説 · 2026-11-16 · authority-utxo research</span>
+<h1>AIに渡した「回数券」を、<br>1体だけその場で止められる仕組み</h1>
+<p class="lead">AIが仕事をどんどん別のAIに任せる時代に、「暴走した1体だけを止めて、他は止めない」を実現する。ユースケースで順に見ていきます。</p>
+
+<div class="card one">
+  AIに渡す権限を「回数券の束」にする。束は分けて渡せるが、<u>枚数は増やせない</u>。<br>
+  そして<u>上の人は、自分の下の1体だけを、いつでも止められる</u>。
+</div>
+
+<h2>登場人物</h2>
+<p class="note">架空の例です。AI運用代行の「ミライ運用社」が、通販会社の問い合わせ対応をAIで回しています。</p>
+<div class="grid g3">
+  <div class="who"><div class="em">🏢</div><b>通販会社（発注元）</b><span>検索APIの利用枠「1,000回」を、ミライ運用社に渡す</span></div>
+  <div class="who"><div class="em">🧑‍💼</div><b>ミライ運用社のリーダーAI</b><span>受け取った枠を、部下のAIたちに分けて渡す</span></div>
+  <div class="who"><div class="em">🤖</div><b>部下AI・外注先のAI</b><span>調査AI・返信下書きAI・外注先（別会社）のAI</span></div>
+</div>
+
+<h2>ユースケース①　いつもの流れ — 枠を分けて、使う</h2>
+<p>リーダーAIは1,000回を「調査AIに400」「下書きAIに400」「外注先に200」と分けて渡します。<b>分けた合計は元の1,000を超えられません</b>。子は親より広い操作もできません（例：「検索だけ」の枠から「メール送信」は生まれない）。</p>
+
+<div class="card">
+  <div class="tree" id="tree"></div>
+  <div class="controls">
+    <button id="run">▶ 普段どおり動かす</button>
+    <button class="danger" id="hack" disabled>⚠ 調査AIが乗っ取られた</button>
+    <button id="stop" disabled>✋ 調査AIだけ止める</button>
+    <button class="ghost" id="reclaim" disabled>↩ 残りを回収</button>
+    <button class="ghost" id="reset">リセット</button>
+  </div>
+  <div class="log" id="log"></div>
+  <p class="note">1回ごとの確認は、サービス入口（ゲートウェイ）が手元で行います。実測で1回 1ミリ秒未満（p99 0.6〜0.9ms）。AIは待たされません。</p>
+</div>
+
+<h2>ユースケース②　1体が暴走 — その1体だけ止める</h2>
+<ol class="steps">
+  <li><b>調査AIが、怪しいWebページの指示に乗っ取られる。</b>検索APIを猛烈な勢いで叩き始める。</li>
+  <li><b>リーダーAI（または人）が「調査AIを止める」に署名して入口へ送る。</b>チェーンの確定は待たない。ミリ秒で効く。</li>
+  <li><b>調査AIの次の呼び出しは拒否（403）。</b>下書きAIと外注先は、何事もなく動き続ける。</li>
+  <li><b>調査AIが使い切らなかった残りは、リーダーへ戻る。</b>使った分と残りが二重に数えられることはない。</li>
+</ol>
+<p class="note">↑ 上のデモで「乗っ取られた」→「調査AIだけ止める」→「残りを回収」を押すと、この流れを見られます。</p>
+
+<h2>ユースケース③　別会社への再委任 — 外注先のAIも同じルール</h2>
+<div class="grid g2">
+  <div class="card" style="margin:0">
+    <h3>いままで</h3>
+    <p>外注先にAPIキーをそのまま渡す。外注先がさらに別のAIへ渡しても、こちらからは見えない。止めるにはキーごと無効化 → <b>自社の他のAIも全部止まる</b>。</p>
+  </div>
+  <div class="card" style="margin:0">
+    <h3>この仕組み</h3>
+    <p>外注先には「200回・検索だけ・今月末まで」の束を渡す。外注先がさらに分けても<b>合計200を超えない</b>。問題が出たら外注先の枝だけ止めて、残りを回収。</p>
+  </div>
+</div>
+
+<h2>従来のやり方と比べると</h2>
+<div class="card">
+<table>
+  <tr><th>やりたいこと</th><th>APIキーを共有</th><th>キーを人数分発行</th><th>この仕組み</th></tr>
+  <tr><td>暴走した1体だけ止める</td><td class="n">全員止まる</td><td class="y">できる</td><td class="y">できる（ミリ秒）</td></tr>
+  <tr><td>AIがさらに別のAIへ分けて渡す</td><td class="n">追えない</td><td class="n">発行者が毎回発行</td><td class="y">AI自身が分けられる</td></tr>
+  <tr><td>分けても合計が増えない</td><td class="n">保証なし</td><td>中央の管理画面しだい</td><td class="y">構造的に保証</td></tr>
+  <tr><td>止めた分の残りを回収</td><td class="n">—</td><td>手作業</td><td class="y">自動で戻る</td></tr>
+  <tr><td>1回あたりの速さ</td><td class="y">速い</td><td class="y">速い</td><td class="y">1ms未満</td></tr>
+</table>
+<p class="note">正直に言うと、1社の中だけなら「キーを人数分発行＋管理画面」でもかなりのことはできます。差が出るのは、AIが<b>何段も</b>仕事を任せ合い、<b>会社をまたぐ</b>ときです。</p>
+</div>
+
+<h2>ブロックチェーン（BSV）はどこで効くのか</h2>
+<div class="card chain">
+  <p><b>製品はチェーンなしで動きます。</b>入口（ゲートウェイ）が回数を数え、束の記録は普通のデータベースに置きます。</p>
+  <p><b>BSV は「差し替えられる部品」として載っています。</b>束の発行・委任・預け入れ・没収をBSVに記録すると、どの会社のデータベースも信用しなくても「合計が増えていない」「上の人が没収できる」を、ルール（スクリプト）として誰でも確かめられます。</p>
+  <p class="note">これは研究として本物のBSVノード（regtest）で動作確認済み。ただし、チェーンが絶対に必要なお客さんは今のところ見つかっていません。</p>
+</div>
+
+<h2>まだできていないこと（正直に）</h2>
+<div class="card honest">
+  <ul>
+    <li>入口（ゲートウェイ）が正直に数えることは信頼している。入口そのものの不正は防げない。</li>
+    <li>止める前に入口が通してしまった呼び出しは取り消せない（「次の呼び出しから」止まる）。</li>
+    <li>実際の顧客での試用、第三者のレビューはまだ。</li>
+  </ul>
+</div>
+
+<p class="note" style="margin-top:40px">詳細: docs/PRACTICAL_V1.md（仕様）／ docs/PRACTICAL_V1_RESULT.md（実測）／ docs/PRACTICAL_V1_CRITIQUE.md（批判）／ docs/AUTHORITY_UTXO.md（BSV研究）</p>
+</main>
+
+<script>
+const INIT = [
+  {id:'root', name:'🏢 通販会社', meta:'発行者', total:1000, left:1000, parent:null},
+  {id:'lead', name:'🧑‍💼 リーダーAI', meta:'ミライ運用社', total:1000, left:0, parent:'root'},
+  {id:'res',  name:'🔎 調査AI', meta:'検索だけ', total:400, left:400, parent:'lead'},
+  {id:'mail', name:'✉️ 下書きAI', meta:'検索だけ', total:400, left:400, parent:'lead'},
+  {id:'sub',  name:'🤝 外注先のAI', meta:'別会社・200回', total:200, left:200, parent:'lead', sub:true},
+];
+let S, timer=null, phase='idle';
+const $ = id => document.getElementById(id);
+const log = (t,c='') => { const l=$('log'); l.innerHTML += `<div class="${c}">${new Date().toLocaleTimeString('ja-JP')}  ${t}</div>`; l.scrollTop=l.scrollHeight; };
+
+function reset(){
+  clearInterval(timer); timer=null; phase='idle';
+  S = Object.fromEntries(INIT.map(n=>[n.id,{...n,state:'ok'}]));
+  $('log').innerHTML=''; log('通販会社が 1,000回の束を発行 → リーダーAIが 400 / 400 / 200 に分割','y');
+  $('run').disabled=false; $('hack').disabled=true; $('stop').disabled=true; $('reclaim').disabled=true;
+  render();
+}
+function nodeHTML(n){
+  const pct = Math.max(0, n.left/n.total*100);
+  const st = n.state==='bad'?'<span class="status s-bad">暴走中</span>':n.state==='stop'?'<span class="status s-stop">停止</span>':'<span class="status s-ok">稼働</span>';
+  const leftLabel = n.id==='lead' ? `${S.lead.left}` : n.left;
+  return `<div class="node ${n.state} ${n.sub?'sub':''}"><div class="name">${n.name}</div><div class="meta">${n.meta}</div>
+    <div class="left">${leftLabel}<span class="meta"> / ${n.total}</span></div><div class="bar"><i style="width:${n.id==='lead'?Math.min(100,S.lead.left/10):pct}%"></i></div>${n.id==='root'||n.id==='lead'?'':st}</div>`;
+}
+function render(){
+  const total = S.res.left+S.mail.left+S.sub.left+S.lead.left;
+  $('tree').innerHTML = `
+    <div class="row">${nodeHTML({...S.root,left:total,meta:'発行者 · 未使用の合計'})}</div><div class="arrow">↓ 1,000回を渡す</div>
+    <div class="row">${nodeHTML({...S.lead,meta:'ミライ運用社 · 手元に戻った分'})}</div><div class="arrow">↓ 分けて渡す（合計 ≤ 1,000）</div>
+    <div class="row">${nodeHTML(S.res)}${nodeHTML(S.mail)}${nodeHTML(S.sub)}</div>`;
+}
+function tick(){
+  for (const k of ['res','mail','sub']){
+    const n=S[k]; if(n.state==='stop'||n.left<=0) continue;
+    const use = n.state==='bad' ? 9 : (Math.random()<.6?1:0);
+    if(!use) continue;
+    n.left=Math.max(0,n.left-use);
+    if(n.state==='bad') log(`${n.name}: 検索API ×${use}（異常な連打）`,'r');
+    else if(Math.random()<.25) log(`${n.name}: 検索API ×1 → 通過（判定 0.6ms）`,'g');
+  }
+  if(S.res.state==='stop' && phase==='stopped' && Math.random()<.3) log('🔎 調査AI: 呼び出し → 403 拒否（停止済み）','r');
+  render();
+}
+$('run').onclick=()=>{ if(timer) return; timer=setInterval(tick,350); phase='running'; log('稼働開始。1回ごとに入口が「署名・範囲・期限・残数」を確認','y'); $('run').disabled=true; $('hack').disabled=false; };
+$('hack').onclick=()=>{ S.res.state='bad'; phase='hacked'; log('⚠ 調査AIが怪しいページの指示に乗っ取られた','r'); $('hack').disabled=true; $('stop').disabled=false; render(); };
+$('stop').onclick=()=>{ S.res.state='stop'; phase='stopped'; log('✋ リーダーAIの署名で「調査AIだけ停止」→ 入口に即時反映（チェーン待ちなし）','y'); log('下書きAI・外注先AIはそのまま稼働','g'); $('stop').disabled=true; $('reclaim').disabled=false; render(); };
+$('reclaim').onclick=()=>{ const r=S.res.left; S.lead.left+=r; S.res.left=0; log(`↩ 調査AIの未使用 ${r}回 をリーダーAIへ回収（使った分と二重に数えない）`,'y'); $('reclaim').disabled=true; render(); };
+$('reset').onclick=reset;
+reset();
+</script>
+</body>
+</html>

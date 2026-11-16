@@ -1,0 +1,28 @@
+name: Practical v1 acceptance
+on:
+  push:
+    branches: [feat/authority-utxo]
+    paths: ['research/**', 'gateway/**', 'cli/**', 'demo/**', 'scripts/**', 'package*.json', '.github/workflows/practical-v1.yml']
+  pull_request:
+    paths: ['research/**', 'gateway/**', 'cli/**', 'demo/**', 'scripts/**', 'package*.json', '.github/workflows/practical-v1.yml']
+permissions:
+  contents: read
+concurrency:
+  group: practical-v1-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '24'
+      - run: npm ci
+      - run: npm test
+      - run: npm run demo
+      - run: npm run demo:bsv
+      - run: npm run demo:gateway
+      - run: node scripts/check-package.mjs
+      - run: npm run bench

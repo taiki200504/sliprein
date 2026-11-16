@@ -1,0 +1,9 @@
+name: Feature request
+description: Describe a concrete workflow and the smallest useful change.
+body:
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Workflow and proposed behavior
+    validations:
+      required: true

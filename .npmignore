@@ -1,0 +1,6 @@
+**/*.test.mjs
+**/*.baktest
+AI_WORKLOG.md
+.env*
+*.sqlite*
+*.key

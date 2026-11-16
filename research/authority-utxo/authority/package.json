@@ -1,0 +1,17 @@
+{
+  "name": "authority-utxo-research",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Authority UTXO prototype \u2014 local script validation only",
+  "scripts": {
+    "test": "nice -n 15 node --test --test-concurrency=1 authority.test.mjs covenant.test.mjs redteam.test.mjs redteam2.test.mjs v04.test.mjs use-k.test.mjs"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "@bsv/sdk": "^4.1.0"
+  },
+  "license": "Apache-2.0"
+}

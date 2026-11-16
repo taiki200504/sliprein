@@ -1,0 +1,269 @@
+{
+  "network": "regtest",
+  "image": "bitcoinsv/bitcoin-sv@sha256:d96fe4786a00e5fc10bc9e0e76a6006376f9472d4eb74d07e4c1e0d019493d33",
+  "sdkVersion": "4.1.0",
+  "version": {
+    "version": 101020300,
+    "subversion": "/Bitcoin SV:1.2.3/",
+    "protocolversion": 70016,
+    "localservices": "0000000000000021",
+    "localrelay": true,
+    "timeoffset": 0,
+    "txnpropagationfreq": 250,
+    "txnpropagationqlen": 0,
+    "networkactive": true,
+    "connections": 0,
+    "addresscount": 0,
+    "streampolicies": "BlockPriority,Default",
+    "networks": [
+      {
+        "name": "ipv4",
+        "limited": false,
+        "reachable": true,
+        "proxy": "",
+        "proxy_randomize_credentials": false
+      },
+      {
+        "name": "ipv6",
+        "limited": false,
+        "reachable": true,
+        "proxy": "",
+        "proxy_randomize_credentials": false
+      }
+    ],
+    "relayfee": 0,
+    "minconsolidationfactor": 20,
+    "maxconsolidationinputscriptsize": 150,
+    "minconfconsolidationinput": 6,
+    "minconsolidationinputmaturity": 6,
+    "acceptnonstdconsolidationinput": false,
+    "localaddresses": [],
+    "warnings": ""
+  },
+  "params": {
+    "K": 2,
+    "target": "7fffff0000000000000000000000000000000000000000000000000000000000",
+    "bits": "207fffff"
+  },
+  "rows": [
+    {
+      "name": "issue-use",
+      "accepted": true,
+      "txid": "d4a924cd397846145b078f2343808647542d6e4f1bcf2f0ed01b89fd832311e8",
+      "block": "4d84024512fa3c684d8ed131b4adc8b4832b3276926097d2c560665da4a0771e",
+      "included": true,
+      "expected": true,
+      "matchesExpectation": true
+    },
+    {
+      "name": "announce-use",
+      "sdk": true,
+      "accepted": true,
+      "txid": "bdfa59b7c316c7d6ed37189689dddd48223ce196b813bea992bd0602c9cfc745",
+      "block": "2c44f0a1dfe2db229ccb1c42dae874fdf708e0d263aa3322f5b33d62787d243f",
+      "included": true,
+      "inputs": 1,
+      "feeSatoshis": 0,
+      "expected": true,
+      "matchesExpectation": true
+    },
+    {
+      "name": "confirm-use-real-headers",
+      "sdk": true,
+      "accepted": true,
+      "txid": "d816ef989e06446d12099bc719227dd44a2f4619e330f96ede197a81a5227ed5",
+      "block": "52975360f0428f44783b5083de5459e74cb75c8ddc5e5371f573f10110b87f61",
+      "included": true,
+      "inputs": 1,
+      "feeSatoshis": 0,
+      "expected": true,
+      "matchesExpectation": true
+    },
+    {
+      "name": "double-spend-after-confirm",
+      "sdk": true,
+      "accepted": false,
+      "error": "error code: -25\nerror message:\nMissing inputs",
+      "inputs": 1,
+      "feeSatoshis": null,
+      "expected": false,
+      "matchesExpectation": true
+    },
+    {
+      "name": "issue-reclaim",
+      "accepted": true,
+      "txid": "5aec69b6d48ebc3f0fa821e9cb2da4dde168454b08721edd6b6297da99de9312",
+      "block": "4b869a5363928d3b94891430694ecae1b6a5a7c9591f453b080ff7bda24163e3",
+      "included": true,
+      "expected": true,
+      "matchesExpectation": true
+    },
+    {
+      "name": "announce-reclaim",
+      "sdk": true,
+      "accepted": true,
+      "txid": "6b27a0ee1334c8d34c521ba4974124b677590119fb6cf0f2bf7963990bd0fd49",
+      "block": "216931da259176249bc8f9d1267cab54def20afc6d1bf10ec80520ee29b4e835",
+      "included": true,
+      "inputs": 1,
+      "feeSatoshis": 0,
+      "expected": true,
+      "matchesExpectation": true
+    },
+    {
+      "name": "ancestor-reclaim",
+      "sdk": true,
+      "accepted": true,
+      "txid": "e1243c8f2cd6e39a1e5db35e14656cc216add1a2aee7e86934bea9e36bb8a886",
+      "block": "6137b686fedc8254d674df49a793de4c1051d2b31c039e10ac37bf95632a1ada",
+      "included": true,
+      "inputs": 1,
+      "feeSatoshis": 0,
+      "expected": true,
+      "matchesExpectation": true
+    },
+    {
+      "name": "confirm-after-reclaim",
+      "sdk": true,
+      "accepted": false,
+      "error": "error code: -25\nerror message:\nMissing inputs",
+      "inputs": 1,
+      "feeSatoshis": null,
+      "expected": false,
+      "matchesExpectation": true
+    },
+    {
+      "name": "issue-delegate",
+      "accepted": true,
+      "txid": "53d802ee3ed581d726d7f22ceadfbe0cb2326e783808a19e50a07b380a66e143",
+      "block": "20d8462408f6b401fe11d380b9402929f63c5e474e5eae772eb2824c9a85275b",
+      "included": true,
+      "expected": true,
+      "matchesExpectation": true
+    },
+    {
+      "name": "announce-delegate",
+      "sdk": true,
+      "accepted": true,
+      "txid": "4ced208f6591a8499bcceac9a9b30caa5c34a85111177436675ba2bb986d0a17",
+      "block": "20b890393273354eacd79f05874238f96ee18bac1d67969aba0b96f25556e688",
+      "included": true,
+      "inputs": 1,
+      "feeSatoshis": 0,
+      "expected": true,
+      "matchesExpectation": true
+    },
+    {
+      "name": "confirm-delegate-real-headers",
+      "sdk": true,
+      "accepted": true,
+      "txid": "0420e7487f3b1b2cfac30d49dcdcab316fc1e93b66e840d3b13e3cbe535629e8",
+      "block": "689e23fae9b541121b49ddb298ba8fbcf13e2d27f6b64223513a281b40954dd7",
+      "included": true,
+      "inputs": 1,
+      "feeSatoshis": 0,
+      "expected": true,
+      "matchesExpectation": true
+    },
+    {
+      "name": "child-announce",
+      "sdk": true,
+      "accepted": true,
+      "txid": "5f1933b2beba78fbe6821e5c3a07e46dcffbd026c22fdfb4f6263ccc82a34f8a",
+      "block": "4503ee98273041bedbdbca302984cac0f6c0727cce77da6b15da14fd9bce19bb",
+      "included": true,
+      "inputs": 1,
+      "feeSatoshis": 0,
+      "expected": true,
+      "matchesExpectation": true
+    },
+    {
+      "name": "child-use-real-headers",
+      "sdk": true,
+      "accepted": true,
+      "txid": "b4dff04353a3cb6036e51694ca77a3b666525469c679f947d52c5fcbcab4a711",
+      "block": "233ad8b2381297fb801b45fa74d15776c0ee4e8c3188df8f28f38d32963531e0",
+      "included": true,
+      "inputs": 1,
+      "feeSatoshis": 0,
+      "expected": true,
+      "matchesExpectation": true
+    },
+    {
+      "name": "issue-mempool-race",
+      "accepted": true,
+      "txid": "c39b65a6307c4bf7c19fa6bccffd131f84f838d30c5fbe70bf6cd1a1f9284f76",
+      "block": "002763624c0c79d421df5a117adc38cd3ed59c48ac55fcf405e694231aa8d9b2",
+      "included": true,
+      "expected": true,
+      "matchesExpectation": true
+    },
+    {
+      "name": "announce-mempool-race",
+      "sdk": true,
+      "accepted": true,
+      "txid": "c307bb329d32cac23fef43a9c7e0eebac7659bd04ea14bdecf93a93529186a85",
+      "block": "74854dfc0be519d29b9574b073ede11ad8cec5afe2a66bbe8893ae537198bf5e",
+      "included": true,
+      "inputs": 1,
+      "feeSatoshis": 0,
+      "expected": true,
+      "matchesExpectation": true
+    },
+    {
+      "name": "confirm-in-mempool",
+      "sdk": true,
+      "accepted": true,
+      "txid": "5e68aa846102f5b44fb1c58d5057ed04605bc21a11698009439779414ff243b1",
+      "inputs": 1,
+      "feeSatoshis": 0,
+      "expected": true,
+      "matchesExpectation": true,
+      "included": true,
+      "block": "3b398e6eb275e9665a237ad2db015a0a3b35bbdfa04ac6cfb61497f746355ddd"
+    },
+    {
+      "name": "reclaim-conflicts-with-mempool-confirm",
+      "sdk": true,
+      "accepted": false,
+      "error": "error code: -26\nerror message:\n258: txn-mempool-conflict",
+      "inputs": 1,
+      "feeSatoshis": null,
+      "expected": false,
+      "matchesExpectation": true
+    },
+    {
+      "name": "issue-floating",
+      "accepted": true,
+      "txid": "501ee7ee0a0a9f830cda75a35b32c83f91b7f8ea427d8cf9d435a8c24e52733c",
+      "block": "357da7f963185d3416475309117f00d03d6eb442e6d5ce8a653fc824c38b476a",
+      "included": true,
+      "expected": true,
+      "matchesExpectation": true
+    },
+    {
+      "name": "announce-floating",
+      "sdk": true,
+      "accepted": true,
+      "txid": "72280b0440195cde31c65d75a2fa7b84dd2b92ba7ce590e386b2fcc57c22e9d9",
+      "block": "306d36d348c30065386e0f238ec5f125fdcea502ab52b75abead23d8f13a32f6",
+      "included": true,
+      "inputs": 1,
+      "feeSatoshis": 0,
+      "expected": true,
+      "matchesExpectation": true
+    },
+    {
+      "name": "floating-headers-confirm",
+      "sdk": true,
+      "accepted": true,
+      "txid": "ddec443a2362f35d53b9f7ae767aa4eb7489e6c7b71deee2a9f6b86a2e8a99a8",
+      "block": "0b9ba507902cef1591427e46cb14e453ce4527d29b172535c9771e768ef8313b",
+      "included": true,
+      "inputs": 1,
+      "feeSatoshis": 0,
+      "expected": false,
+      "matchesExpectation": false
+    }
+  ]
+}
