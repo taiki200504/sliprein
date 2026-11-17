@@ -37,7 +37,7 @@ test('health probe avoids authorization; active request limit and timeout releas
  assert.equal((await fetch(base+'/healthz')).status,200);
  const send=()=>fetch(base+'/v1/chat/completions',{method:'POST',headers:{authorization:`Bearer ${token}`},body:'{}'});
  const first=send();while(!calls) await new Promise(r=>setTimeout(r,2));
- assert.equal((await send()).status,503);assert.equal((await first).status,502);assert.equal(s.status('a').used,1);
+ assert.equal((await send()).status,503);assert.equal((await first).status,502);assert.equal(s.status('a').used,0);
  assert.equal((await fetch(base+'/healthz')).status,200);
 });
 test('operator upstream prefix rejects ambiguous path encodings',t=>{

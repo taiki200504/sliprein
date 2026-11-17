@@ -22,7 +22,8 @@
     "auth.mjs",
     "ledger.mjs",
     "http.mjs",
-    "proxy.mjs"
+    "proxy.mjs",
+    "transport.mjs"
   ],
   "description": "Conserved call budgets for AI agents"
 }

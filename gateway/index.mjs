@@ -35,6 +35,10 @@ export class Gateway {
       CREATE INDEX IF NOT EXISTS tranches_expiry ON tranches(T);
       CREATE INDEX IF NOT EXISTS tranches_active ON tranches(stopped,id);
       CREATE INDEX IF NOT EXISTS events_receipts ON events(tranche,kind);`);
+    const columns = this.db.prepare('PRAGMA table_info(agent_tokens)').all().map(row=>row.name);
+    if (!columns.includes('revoked')) this.db.exec('ALTER TABLE agent_tokens ADD COLUMN revoked INTEGER NOT NULL DEFAULT 0');
+    if (!columns.includes('expires')) this.db.exec('ALTER TABLE agent_tokens ADD COLUMN expires INTEGER');
+    this.pendingUpstream = new Set();
   }
   prepare(sql) {
     if (!this.statements.has(sql)) this.statements.set(sql, this.db.prepare(sql));
@@ -109,12 +113,13 @@ export class Gateway {
     const payload = verifySigned(request);
     return this.authorizeChecked(request, payload, started);
   }
-  issueToken(tranche, agentKey) {
+  issueToken(tranche, agentKey, { expiresAt } = {}) {
     const row = this.row(tranche);
     requireThat(row.agent_key === agentKey && !row.stopped && row.T >= this.now(), 'wrong or inactive agent');
+    requireThat(expiresAt === undefined || (Number.isSafeInteger(expiresAt) && expiresAt > this.now() && expiresAt <= row.T), 'invalid token expiry');
     const token = randomBytes(32).toString('base64url');
     const digest = createHash('sha256').update(token).digest('hex');
-    this.prepare('INSERT INTO agent_tokens VALUES(?,?,?)').run(digest, tranche, agentKey);
+    this.prepare('INSERT INTO agent_tokens(digest,tranche,agent_key,expires) VALUES(?,?,?,?)').run(digest, tranche, agentKey, expiresAt ?? null);
     return token;
   }
   resolveToken(token) {
@@ -123,8 +128,10 @@ export class Gateway {
     const binding = this.prepare('SELECT * FROM agent_tokens WHERE digest=?').get(digest);
     const stored = binding ? Buffer.from(binding.digest, 'hex') : Buffer.alloc(32);
     requireThat(timingSafeEqual(Buffer.from(digest, 'hex'), stored) && binding, 'unknown token');
+    requireThat(!binding.revoked && (binding.expires === null || binding.expires > this.now()), 'inactive token');
     return binding;
   }
+  revokeTokens(tranche) { this.row(tranche); return this.prepare('UPDATE agent_tokens SET revoked=1 WHERE tranche=? AND revoked=0').run(tranche).changes; }
   async authorizeBearer(token, request) {
     const binding = this.resolveToken(token);
     request = { ...request, tranche: binding.tranche, agentKey: binding.agent_key, nonce: randomUUID(), signature: 'bearer:' + binding.digest };
@@ -145,7 +152,37 @@ export class Gateway {
       requireThat(change.changes === 1, 'exhausted');
       return { remaining: r.remaining - 1 };
     });
-    return { ...result, decisionMs: performance.now() - started };
+    const authorization = { ...result, decisionMs: performance.now() - started };
+    Object.defineProperty(authorization,'receipt',{value:{tranche:request.tranche,nonce:request.nonce}});
+    return authorization;
+  }
+  trackUpstream(receipt) { this.pendingUpstream.add(JSON.stringify(receipt)); }
+  finishUpstream(receipt) { this.pendingUpstream.delete(JSON.stringify(receipt)); }
+  refund(receipt) {
+    const result = this.atomic(() => {
+      const changed = this.prepare("UPDATE events SET kind='refund' WHERE tranche=? AND nonce=? AND kind='use'").run(receipt.tranche,receipt.nonce);
+      if (!changed.changes) return false;
+      const row = this.row(receipt.tranche);
+      if (row.reason === 'local-stop') {
+        this.prepare('UPDATE tranches SET used=used-1,n=n-1 WHERE id=?').run(receipt.tranche);
+        // Stopped delegated allocations have already returned their unused quota.
+        let id = receipt.tranche;
+        while (true) {
+          const link = this.prepare('SELECT parent,returned FROM delegations WHERE child=?').get(id);
+          if (!link?.returned) break;
+          id = link.parent;
+          const parent = this.row(id);
+          if (parent.reason !== 'local-stop') {
+            this.prepare('UPDATE tranches SET n=n+1,remaining=remaining+1 WHERE id=?').run(id);break;
+          }
+        }
+      } else this.prepare('UPDATE tranches SET used=used-1,remaining=remaining+1 WHERE id=?').run(receipt.tranche);
+      this.prepare("UPDATE settlements SET k=k-1 WHERE tranche=? AND status='pending' AND k>1").run(receipt.tranche);
+      this.prepare("DELETE FROM settlements WHERE tranche=? AND status='pending' AND k=1 AND ?=1").run(receipt.tranche,row.used);
+      return true;
+    });
+    this.finishUpstream(receipt);
+    return result;
   }
   async stop(request) {
     requireThat(request.method === 'POST' && request.path === '/stop', 'invalid stop request');
@@ -166,6 +203,7 @@ export class Gateway {
   pendingSettlements() { return this.prepare("SELECT tranche,k,status FROM settlements WHERE status!='done' ORDER BY rowid").all(); }
   async settle(id, { lockTime = 0 } = {}) {
     validateID(id);
+    requireThat(![...this.pendingUpstream].some(value=>JSON.parse(value).tranche === id), 'upstream admission pending');
     const k = this.atomic(() => {
       const r = this.row(id);
       requireThat(r.used >= 1, 'unused tranche');

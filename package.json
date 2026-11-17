@@ -26,6 +26,7 @@
     "gateway/index.mjs",
     "gateway/auth.mjs",
     "gateway/http.mjs",
+    "gateway/transport.mjs",
     "README.md",
     "LICENSE",
     "SECURITY.md",

@@ -60,7 +60,8 @@ export function openState(directory) {
     gateway,
     issue: (name, options) => gateway.atomic(() => create(name, options)),
     delegate(parent, child, n, options) { return gateway.atomic(() => delegate(parent,child,n,options)); },
-    token(name) { const row = agent(name); return gateway.issueToken(row.tranche,row.agent_key); },
+    token(name, options) { const row = agent(name); return gateway.issueToken(row.tranche,row.agent_key,options); },
+    revokeTokens(name) { return {revoked:gateway.revokeTokens(agent(name).tranche)}; },
     stop(name) {
       return gateway.atomic(() => {
         const source = agent(name); const key = source.agent_key;

@@ -39,7 +39,7 @@ npm run -s sliprein -- status
 
 ## Trust boundary and limits
 
-Trust the operator, host, local SQLite state, TLS boundary and provider. The operator can edit budgets and access upstream credentials. Bearer tokens prove possession, not agent identity or intent. This does not prevent prompt injection, sandbox tools, cap token spend or retract admitted requests. Upstream failures still count; existing streams continue after a stop. Upstream bodies pass through, including any sensitive data the provider returns.
+Trust the operator, host, local SQLite state, TLS boundary and provider. The operator can edit budgets and access upstream credentials. Bearer tokens prove possession, not agent identity or intent. This does not prevent prompt injection, sandbox tools, cap token spend or retract admitted requests. Connection failures or timeouts before upstream response headers refund the admitted call; failures after upstream headers (including error statuses, redirects and broken streams) still count; existing streams continue after a stop. Upstream bodies pass through, including any sensitive data the provider returns.
 
 ## Scaling limits
 
@@ -53,11 +53,15 @@ One process and a local SQLite database; synchronous durable writes serialize ad
 
 **How do I stop or delegate?** Local CLI below; token-authenticated `POST /delegate` accepts `name`, `calls`, optional `scope` and `expiresAt`. `POST /stop` with `{}` stops the caller subtree. These management calls do not consume provider quota. Scope bits: chat 1, embeddings 2, responses 4, models 8; maximum ancestry depth 8.
 
+Tokens can expire independently: `sliprein token worker --ttl 3600` issues a token valid for one hour (within the agent expiry). `sliprein token revoke worker` revokes all existing tokens for that agent, leaving other agents and the allocation active; the next call returns 401. Omit `--ttl` to use the allocation lifetime. Issuing a new token after revocation is allowed.
+
+For direct exposure, keep `trustProxy: false` (CLI default, `--trust-proxy false`): forwarded headers are ignored and IPv6 clients share a /64 rate-limit key. Behind a trusted reverse proxy, explicitly use `--trust-proxy true` (`trustProxy: true` in the server API); only the last hop in `X-Forwarded-For` is used if it is a valid IP. The proxy must overwrite or append the real client IP, and clients must not reach the gateway directly. Body reads have a 5-second total deadline; configure `--body-timeout-ms 5000` (`bodyTimeoutMs`) as needed. Oversized requests receive 413 and their connection closes.
+
 **Can I expose it remotely?** Default bind is `127.0.0.1`. Explicit `--host 0.0.0.0` opts into all IPv4 interfaces and prints a warning. Put TLS and access control at a trusted reverse proxy. Never expose the private state directory (`~/.sliprein`, override with `--state`). Do not share it with agents.
 
 **What does /healthz check?** Local process liveness only, without credentials or quota debit; not provider readiness or database integrity.
 
-**How long are receipts kept?** Live tranche receipts/nonces are never pruned. After expiry + 24h, periodic bounded cleanup removes them. Export before that if audit evidence is needed. Tranche/settlement metadata, WAL size and backups still need a retention policy. A token can be replayed until expired, stopped or exhausted.
+**How long are receipts kept?** Live tranche receipts/nonces are never pruned. After expiry + 24h, periodic bounded cleanup removes them. Export before that if audit evidence is needed. Tranche/settlement metadata, WAL size and backups still need a retention policy. A token can be replayed until revoked, expired, stopped or exhausted.
 
 **Are errors private?** Gateway errors are generic and client authorization/hop-by-hop headers never go upstream. Provider responses are passed through; their disclosure policy is outside this boundary.
 
