@@ -34,7 +34,7 @@ A second run found upstream connection bursts returning 502 at 200 clients. Repl
 
 ## Validation
 
-Results and exact commands will be appended after implementation. Disk usage from live tranches, settlement history and expired tranche metadata still requires operator retention/backup policy; pruning receipts is not full database compaction. SQLite WAL is not a distributed database.
+Disk usage from live tranches, settlement history and expired tranche metadata still requires operator retention/backup policy; pruning receipts is not full database compaction. SQLite WAL is not a distributed database.
 
 ### Local measurements (2026-11-17)
 
@@ -49,7 +49,7 @@ Commands: `heavy nice -n 15 node scripts/load.mjs` and `LOAD_DEFAULTS=1 heavy ni
 
 Latency includes rejections in the default-limit rows. Default runs finish in less than one second, so successful rps there is a burst quotient, not sustained throughput; the actual policy remains 100 admissions/agent/second and 200 requests/IP/second. Capacity and default rows are not comparable SLAs. Raw metadata/results: [capacity](load-capacity.jsonl), [defaults](load-defaults.jsonl). The capacity run changes only rate thresholds, not the 200-active/512-client/64-upstream connection bounds.
 
-Regression tests: five new tests failed before implementation (RED); after fixes, 37 focused gateway/proxy/CLI tests pass, including the sixth new upstream-pool regression. Clean root/standalone gateway package installation and Quickstart pass without the BSV runtime dependency (`heavy nice -n 15 node scripts/check-package.mjs`). Complete existing + new suite is delegated to required acceptance CI. The three 1600×900 PNGs were rendered from committed HTML using the mitama headless Chromium browser and visually inspected. No independent reviewer or Jev grading was run because this delegated task explicitly prohibits further delegation.
+Regression tests: five new tests failed before implementation (RED); after fixes, 37 focused gateway/proxy/CLI tests pass, including the sixth new upstream-pool regression. Clean root/standalone gateway package installation and Quickstart pass without the BSV runtime dependency (`heavy nice -n 15 node scripts/check-package.mjs`). Acceptance CI confirms 172 tests passed (existing 166 + 6 new). The high-volume signed demo and benchmark explicitly raise agent rate limits; deployment defaults remain unchanged. The three 1600×900 PNGs were rendered from committed HTML using the mitama headless Chromium browser and visually inspected. No independent reviewer or Jev grading was run because this delegated task explicitly prohibits further delegation.
 
 ### Remaining limits
 
