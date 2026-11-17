@@ -1,11 +1,12 @@
 name: Research alpha checks
 on:
+  push:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, labeled]
 permissions:
   contents: read
 concurrency:
-  group: ci-${{ github.event.pull_request.number }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   check:

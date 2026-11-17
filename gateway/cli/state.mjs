@@ -84,7 +84,7 @@ export function openState(directory) {
     },
     delegateToken(token, {name,calls,scope,expiresAt}) {
       return gateway.atomic(() => {
-        const binding = gateway.resolveToken(token), row = gateway.row(binding.tranche);
+        const binding = gateway.resolveToken(token); gateway.checkAgentRate(binding.agent_key); const row = gateway.row(binding.tranche);
         requireThat(!row.stopped && row.T >= gateway.now(), 'inactive agent');
         const parent = gateway.db.prepare('SELECT name FROM agents WHERE tranche=?').get(binding.tranche);
         requireThat(parent, 'unmanaged agent');
@@ -93,7 +93,7 @@ export function openState(directory) {
       });
     },
     stopToken(token) {
-      const binding = gateway.resolveToken(token);
+      const binding = gateway.resolveToken(token); gateway.checkAgentRate(binding.agent_key);
       const source = gateway.db.prepare('SELECT name FROM agents WHERE tranche=?').get(binding.tranche);
       requireThat(source, 'unmanaged agent');return control.stop(source.name);
     },

@@ -1,0 +1,3 @@
+{"node":"v24.16.0","platform":"darwin","release":"27.2.0","cpu":"Apple M5","cpus":10,"memoryGiB":16,"samples":1000,"mode":"capacity (rate limits raised explicitly)","storage":"temporary local disk, WAL, synchronous=FULL","mock":"JSON, 5ms delay, 1KiB response","warmup":"one request per client, connection ramp in batches of 25"}
+{"concurrency":50,"samples":1000,"seconds":0.258684125,"rps":3865.71847035453,"successfulRps":3865.71847035453,"p50Ms":9.180957999999919,"p99Ms":44.84170800000015,"errorRate":0,"statuses":{"200":1000},"errors":{}}
+{"concurrency":200,"samples":1000,"seconds":0.22376808299999992,"rps":4468.9125749895275,"successfulRps":4468.9125749895275,"p50Ms":42.144374999999854,"p99Ms":67.00983299999962,"errorRate":0,"statuses":{"200":1000},"errors":{}}

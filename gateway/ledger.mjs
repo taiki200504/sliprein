@@ -1,6 +1,19 @@
 import { randomBytes } from 'node:crypto';
+import { lstatSync, openSync, closeSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { requireThat, validateID, keyObject, publicKey, ancestryRoot } from './auth.mjs';
+
+// All persistent entry points share the same permission checks, including library users.
+export function openDatabase(filename) {
+  if (filename !== ':memory:') {
+    for (const path of [filename, filename+'-wal', filename+'-shm']) {
+      try { const info = lstatSync(path); requireThat(info.isFile() && info.uid === process.getuid() && (info.mode & 0o077) === 0, 'database must be private'); }
+      catch (error) { if (error.code !== 'ENOENT') throw error; }
+    }
+    try { closeSync(openSync(filename, 'wx', 0o600)); } catch (error) { if (error.code !== 'EEXIST') throw error; }
+  }
+  return new DatabaseSync(filename);
+}
 
 /**
  * Ledger interface (authority source, independent of the gateway's usage database):
@@ -10,12 +23,14 @@ import { requireThat, validateID, keyObject, publicKey, ancestryRoot } from './a
  */
 export class SqliteLedger {
   constructor({ filename = ':memory:', db } = {}) {
+    this.statements = new Map();
     this.ownsDb = !db;
-    this.db = db ?? new DatabaseSync(filename);
+    this.db = db ?? openDatabase(filename);
     this.db.exec(`PRAGMA busy_timeout=5000; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;
       CREATE TABLE IF NOT EXISTS ledger_tranches(id TEXT PRIMARY KEY,data TEXT NOT NULL,spent INTEGER NOT NULL DEFAULT 0);
       CREATE TABLE IF NOT EXISTS ledger_settlements(id TEXT PRIMARY KEY,k INTEGER NOT NULL,result TEXT NOT NULL);`);
   }
+  prepare(sql) { if (!this.statements.has(sql)) this.statements.set(sql, this.db.prepare(sql)); return this.statements.get(sql); }
   close() { if (!this.closed) { if (this.ownsDb) this.db.close(); this.closed = true; } }
   atomic(fn) {
     this.db.exec('BEGIN IMMEDIATE');
@@ -29,13 +44,13 @@ export class SqliteLedger {
     for (const value of [n, P, T]) requireThat(Number.isSafeInteger(value) && value >= 0 && value <= 0x7fffffff, 'invalid tranche state');
     const id = `${randomBytes(32).toString('hex')}:0`;
     const state = { id, holder, ancestors: [...ancestors], R: ancestryRoot(ancestors), d: ancestors.length, n, P, T, phase: 0 };
-    this.db.prepare('INSERT INTO ledger_tranches(id,data) VALUES(?,?)').run(id, JSON.stringify(state));
+    this.prepare('INSERT INTO ledger_tranches(id,data) VALUES(?,?)').run(id, JSON.stringify(state));
     return id;
   }
-  stored(id) { validateID(id); return this.db.prepare('SELECT data,spent FROM ledger_tranches WHERE id=?').get(id); }
+  stored(id) { validateID(id); return this.prepare('SELECT data,spent FROM ledger_tranches WHERE id=?').get(id); }
   async readTranche(id) { const row = this.stored(id); return row && !row.spent ? JSON.parse(row.data) : undefined; }
   async isSpent(id) { const row = this.stored(id); return !row || !!row.spent; }
-  spend(id) { validateID(id); this.db.prepare('UPDATE ledger_tranches SET spent=1 WHERE id=?').run(id); }
+  spend(id) { validateID(id); this.prepare('UPDATE ledger_tranches SET spent=1 WHERE id=?').run(id); }
   delegate(id, { key, children }) {
     return this.atomic(() => {
       const row = this.stored(id); requireThat(row && !row.spent, 'missing or spent tranche');
@@ -54,7 +69,7 @@ export class SqliteLedger {
   async settle(id, k, { key }) {
     return this.atomic(() => {
       validateID(id);
-      const existing = this.db.prepare('SELECT k,result FROM ledger_settlements WHERE id=?').get(id);
+      const existing = this.prepare('SELECT k,result FROM ledger_settlements WHERE id=?').get(id);
       const row = this.stored(id); requireThat(row && publicKey(key) === JSON.parse(row.data).holder, 'wrong holder');
       if (existing) { requireThat(existing.k === k, 'settlement count changed'); return JSON.parse(existing.result); }
       requireThat(!row.spent, 'spent tranche'); const parent = JSON.parse(row.data);
@@ -62,7 +77,7 @@ export class SqliteLedger {
       const outputId = this.issue({ ...parent, n: parent.n - k });
       this.spend(id);
       const result = { ok: true, settled: true, kind: 'sqlite', k, remaining: parent.n - k, output: { id: outputId } };
-      this.db.prepare('INSERT INTO ledger_settlements VALUES(?,?,?)').run(id, k, JSON.stringify(result));
+      this.prepare('INSERT INTO ledger_settlements VALUES(?,?,?)').run(id, k, JSON.stringify(result));
       return result;
     });
   }
