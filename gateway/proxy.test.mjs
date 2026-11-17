@@ -28,7 +28,7 @@ test('bearer proxy relays JSON, SSE, status and never forwards agent credentials
  t.after(()=>{proxy.closeAllConnections();proxy.close();upstream.closeAllConnections();upstream.close();f.g.close();});
  const token=f.g.issueToken(f.id,f.agent.toPublicKey().toString());
  const send=tok=>fetch(base+'/v1/chat/completions',{method:'POST',headers:{authorization:`Bearer ${tok}`,'content-type':'application/json'},body:'{"model":"mock","stream":true}'});
- assert.equal((await send('invalid')).status,403);
+ assert.equal((await send('invalid')).status,401);
  const response=await send(token);assert.equal(response.status,201);assert.equal(response.headers.get('set-cookie'),null);
  assert.match(await response.text(),/\[DONE\]/); assert.equal(calls,1); assert.equal(f.g.status(f.id).used,1);
  f.g.db.prepare('UPDATE tranches SET stopped=1 WHERE id=?').run(f.id);
@@ -88,12 +88,12 @@ test('body and IP rate limits reject requests before authorization',async t=>{
  assert.equal((await fetch(base+'/v1/chat/completions',{method:'POST',headers,body:'{}'})).status,429);
  assert.equal(f.g.status(f.id).used,0);
 });
-test('unavailable upstream returns sanitized 502 and consumes admission',async t=>{
+test('unavailable upstream returns sanitized 502 and refunds admission',async t=>{
  const f=await fixture();f.g.operations={'POST /v1/chat/completions':1};
  const proxy=createProxyServer(f.g,{upstream:'http://127.0.0.1:1',apiKey:'server-secret'});const base=await listen(proxy);
  t.after(()=>{proxy.closeAllConnections();proxy.close();f.g.close();});
  const res=await fetch(base+'/v1/chat/completions',{method:'POST',headers:{authorization:`Bearer ${f.g.issueToken(f.id,f.agent.toPublicKey().toString())}`},body:'{}'});
- assert.equal(res.status,502);assert.doesNotMatch(await res.text(),/server-secret|ECONN|127\.0\.0\.1/);assert.equal(f.g.status(f.id).used,1);
+ assert.equal(res.status,502);assert.doesNotMatch(await res.text(),/server-secret|ECONN|127\.0\.0\.1/);assert.equal(f.g.status(f.id).used,0);
 });
 test('upstream URL and configuration validation reject credential injection',async()=>{
  const f=await fixture();

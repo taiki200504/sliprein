@@ -36,7 +36,7 @@ if (useBsv) {
     deposits.push(ledger.delegate(agents[i], { key: agent, children: [child(gatewayKey, 500)] }).ids[0]);
   }
 }
-const gateway = new Gateway({ key: gatewayKey, ledger, operations: { 'POST /mock': 1 } });
+const gateway = new Gateway({ key: gatewayKey, ledger, agentRateLimit: 10000, operations: { 'POST /mock': 1 } });
 for (const [i, agent] of [agent1, agent2].entries()) await gateway.bind(deposits[i], [companyA, companyB, agent].map(publicKey));
 let calls = 0;
 const server = createServer(gateway, { rateLimit: 10000, execute: async () => ({ mock: true, calls: ++calls }) });

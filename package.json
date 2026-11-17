@@ -9,10 +9,10 @@
     "sliprein": "node gateway/cli/main.mjs"
   },
   "engines": {
-    "node": ">=24"
+    "node": "24.x"
   },
   "name": "sliprein",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Per-agent quotas and stop controls for OpenAI-compatible APIs",
   "license": "Apache-2.0",
   "bin": {
@@ -26,10 +26,19 @@
     "gateway/index.mjs",
     "gateway/auth.mjs",
     "gateway/http.mjs",
+    "gateway/transport.mjs",
     "README.md",
     "LICENSE",
     "SECURITY.md",
-    "gateway/package.json"
+    "gateway/package.json",
+    "README.ja.md",
+    "README.zh-CN.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "docs/SCALING_AUDIT.md",
+    "docs/RELEASING.md",
+    "docs/assets/*.png",
+    "docs/load-*.jsonl"
   ],
   "devDependencies": {
     "@bsv/sdk": "^4.1.0"

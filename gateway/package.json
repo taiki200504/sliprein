@@ -1,7 +1,7 @@
 {
   "type": "module",
   "engines": {
-    "node": ">=24"
+    "node": "24.x"
   },
   "scripts": {
     "test": "nice -n 15 node --test --test-concurrency=1 gateway.test.mjs",
@@ -10,7 +10,7 @@
     "sliprein": "node cli/main.mjs"
   },
   "name": "sliprein",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "Apache-2.0",
   "bin": {
     "sliprein": "cli/main.mjs"
@@ -22,7 +22,8 @@
     "auth.mjs",
     "ledger.mjs",
     "http.mjs",
-    "proxy.mjs"
+    "proxy.mjs",
+    "transport.mjs"
   ],
   "description": "Conserved call budgets for AI agents"
 }
