@@ -11,6 +11,8 @@ function keyFromHex(hex) {
   const ec = createECDH('secp256k1'); ec.setPrivateKey(Buffer.from(hex, 'hex'));
   return { toHex: () => hex, toPublicKey: () => ({ toString: () => ec.getPublicKey('hex', 'compressed') }) };
 }
+/** 32-byte private key as 64 hex chars. ECDH#getPrivateKey drops leading zero bytes (~1 in 256 keys). */
+export function privateKeyHex(ec) { return ec.getPrivateKey().toString('hex').padStart(64, '0'); }
 export function openState(directory) {
   mkdirSync(directory, { recursive: true, mode: 0o700 });
   const info = lstatSync(directory);
@@ -20,7 +22,7 @@ export function openState(directory) {
   try { hex = readFileSync(keyPath, 'utf8'); }
   catch (error) {
     if (error.code !== 'ENOENT') throw error;
-    const ec = createECDH('secp256k1'); ec.generateKeys(); hex = ec.getPrivateKey('hex');
+    const ec = createECDH('secp256k1'); ec.generateKeys(); hex = privateKeyHex(ec);
     try { writeFileSync(keyPath, hex, { mode: 0o600, flag: 'wx' }); }
     catch (writeError) { if (writeError.code !== 'EEXIST') throw writeError; hex = readFileSync(keyPath, 'utf8'); }
   }
