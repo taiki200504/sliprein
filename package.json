@@ -1,8 +1,9 @@
 {
   "type": "module",
   "scripts": {
-    "test": "nice -n 15 node --test --test-concurrency=1 research/authority-utxo/authority/*.test.mjs gateway/*.test.mjs cli/*.test.mjs research/authority-utxo/legacy/*.test.mjs",
+    "test": "nice -n 15 node --test --test-concurrency=1 research/authority-utxo/authority/*.test.mjs gateway/*.test.mjs cli/*.test.mjs research/authority-utxo/legacy/*.test.mjs demo/*.test.mjs",
     "demo": "node demo/run.mjs",
+    "demo:web": "node demo/web.mjs",
     "demo:bsv": "node gateway/demo.mjs --bsv",
     "demo:gateway": "node gateway/demo.mjs",
     "bench": "node scripts/bench.mjs",
