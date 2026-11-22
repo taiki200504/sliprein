@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>sliprein — budget split demo</title>
+<style>
+body{font:16px/1.6 system-ui,sans-serif;max-width:860px;margin:0 auto;padding:20px;color:#111;background:#fafafa}
+h1{font-size:22px;margin:0 0 4px}p.note{color:#555;font-size:14px;margin:0 0 16px}
+ol{padding-left:20px}li{margin:8px 0}button{font:inherit;min-height:44px;padding:8px 14px;border:1px solid #888;border-radius:8px;background:#fff;cursor:pointer;margin:4px 6px 4px 0}
+button:hover{background:#eef}button:disabled{color:#555;background:#f0f0f0;border-color:#aaa;cursor:not-allowed}table{border-collapse:collapse;width:100%;margin:12px 0;font-size:15px}th,td{border-bottom:1px solid #ddd;padding:8px;text-align:right}th:first-child,td:first-child{text-align:left}
+tr.stopped td{color:#595959;text-decoration:line-through}.why{font-size:14px;color:#444}.total{font-weight:600}#log{font:13px/1.5 ui-monospace,monospace;background:#fff;border:1px solid #ddd;border-radius:8px;padding:10px;white-space:pre-wrap;max-height:260px;overflow:auto}
+#status{min-height:1.5em;font-weight:600}@media(max-width:600px){body{padding:14px}button{width:100%}}
+</style></head><body>
+<h1>Split a budget, re-delegate, stop a branch</h1>
+<p class="note">Local only. Each button calls the real sliprein proxy (<code>POST /delegate</code>, <code>/stop</code>, <code>/v1/chat/completions</code>) against a mock model. Tokens stay on the server and are never shown.</p>
+<ol>
+<li>The coordinator had 150 calls and split them: agent-1/2/3 × 50.</li>
+<li><button data-act="delegate">agent-2 → worker: delegate 20</button> <span class="why" id="why-delegate"></span></li>
+<li><button data-act="call" data-agent="worker">worker calls</button><button data-act="call" data-agent="agent-2">agent-2 calls</button><button data-act="call" data-agent="agent-1">agent-1 calls</button></li>
+<li><button data-act="stop" data-agent="agent-2">Stop agent-2 (and its subtree)</button></li>
+<li>Call again: stopped agents are denied, siblings keep running, unused calls returned to the coordinator once.</li>
+</ol>
+<p><button data-act="reset">Reset</button></p>
+<p id="status" role="status" aria-live="polite"></p>
+<table><caption style="text-align:left">Ledger (from the gateway)</caption><thead><tr><th>agent</th><th>remaining</th><th>used</th><th>state</th></tr></thead><tbody id="rows"></tbody>
+<tfoot><tr class="total"><td>remaining + used (never above 150)</td><td id="sum" colspan="3"></td></tr></tfoot></table>
+<div id="log" aria-label="Event log"></div>
+<script src="/web.js"></script>
+</body></html>

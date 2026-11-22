@@ -24,6 +24,10 @@ npm run -s sliprein -- serve --upstream https://api.openai.com
 
 Use the token printed by the third command as your SDK API key and `http://127.0.0.1:8787/v1` as `base_url`. Never give agents the upstream API key. The package is not published to npm; use this checkout. Runtime dependencies: zero. The BSV SDK is development-only.
 
+## Try it in a browser
+
+`npm run demo:web` starts a local page (default `http://127.0.0.1:8790/`, override with `PORT`) with a mock model and no API key. Buttons split a 150-call budget between three agents, re-delegate part of one, stop that subtree, and show the gateway denying the stopped agents while siblings keep running and unused calls return to the parent once. Each button calls the real proxy endpoints; tokens stay in the demo process. Ctrl+C deletes the temporary state.
+
 ## Virtual keys and sliprein
 
 Virtual-key gateways already offer per-key revocation and shared or hierarchical budgets. sliprein focuses on **an agent splitting its own remaining calls**: children cannot increase the total, scope or expiry. Stopping a subtree returns unused calls to its parent once. This is a workflow distinction, not a claim of unique revocation.
